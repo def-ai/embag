@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <set>
 #include <unordered_set>
 #include <unordered_map>
@@ -100,7 +101,7 @@ class View {
       bool operator()(std::shared_ptr<bag_wrapper_t> &left, std::shared_ptr<bag_wrapper_t> &right) {
         const auto &left_ts = left->current_timestamp;
         const auto &right_ts = right->current_timestamp;
-
+        return left_ts < right_ts;
         if (left_ts.secs > right_ts.secs) {
           return true;
         } else if (left_ts.secs == right_ts.secs && left_ts.nsecs > right_ts.nsecs) {
@@ -121,6 +122,7 @@ class View {
   View getMessages(const std::string &topic);
   View getMessages(const std::vector<std::string> &topics);
   View getMessages(std::initializer_list<std::string> topics);
+  void setQuery(const std::vector<std::string> &topics, std::chrono::nanoseconds start_time, std::chrono::nanoseconds end_time);
   RosValue::ros_time_t getStartTime();
   RosValue::ros_time_t getEndTime();
 
@@ -159,6 +161,7 @@ class View {
   }
 
  private:
+  std::chrono::nanoseconds start_time_, end_time_;
   std::vector<std::shared_ptr<Bag>> bags_;
   std::unordered_map<std::shared_ptr<Bag>, std::shared_ptr<iterator::bag_wrapper_t>> bag_wrappers_;
 };

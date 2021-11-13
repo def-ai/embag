@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <cstdint>
 #include <cstring>
@@ -63,6 +64,26 @@ class RosValue {
     array,
   };
 
+  struct ros_duration_t {
+    int32_t secs = 0;
+    int32_t nsecs = 0;
+
+    double to_sec() const {
+      return double(secs) + double(nsecs) / 1e9;
+    }
+
+    long to_nsec() const {
+      return long(secs) * long(1e9) + long(nsecs);
+    }
+
+    ros_duration_t() {};
+    ros_duration_t(const uint32_t secs, const uint32_t nsecs) : secs(secs), nsecs(nsecs) {}
+
+    bool operator==(const ros_duration_t &other) const {
+      return secs == other.secs && nsecs == other.nsecs;
+    }
+  };
+
   struct ros_time_t {
     uint32_t secs = 0;
     uint32_t nsecs = 0;
@@ -81,25 +102,18 @@ class RosValue {
     bool operator==(const ros_time_t &other) const {
       return secs == other.secs && nsecs == other.nsecs;
     }
-  };
 
-  struct ros_duration_t {
-    int32_t secs = 0;
-    int32_t nsecs = 0;
-
-    double to_sec() const {
-      return double(secs) + double(nsecs) / 1e9;
+    bool operator<(const ros_time_t &other) const {
+      if (secs < other.secs) {
+          return true;
+        } else if (secs == other.secs && nsecs < other.nsecs) {
+          return true;
+        }
+        return false;
     }
 
-    long to_nsec() const {
-      return long(secs) * long(1e9) + long(nsecs);
-    }
-
-    ros_duration_t() {};
-    ros_duration_t(const uint32_t secs, const uint32_t nsecs) : secs(secs), nsecs(nsecs) {}
-
-    bool operator==(const ros_duration_t &other) const {
-      return secs == other.secs && nsecs == other.nsecs;
+    ros_duration_t operator-(const ros_time_t &other) const {
+      return ros_duration_t{secs - other.secs, nsecs - other.nsecs};
     }
   };
 
@@ -364,5 +378,14 @@ const std::string& RosValue::const_iterator<const std::string&, std::unordered_m
 
 template<>
 const std::pair<const std::string&, const RosValue&> RosValue::const_iterator<const std::pair<const std::string&, const RosValue&>, std::unordered_map<std::string, size_t>::const_iterator>::operator*() const;
+template <typename Rep, typename Period>
+bool operator<(const RosValue::ros_time_t& lhs, const std::chrono::duration<Rep, Period>& rhs) {
+  return std::chrono::nanoseconds{lhs.to_nsec()} < rhs;
+}
+
+template <typename Rep, typename Period>
+bool operator>(const RosValue::ros_time_t& lhs, const std::chrono::duration<Rep, Period>& rhs) {
+  return std::chrono::nanoseconds{lhs.to_nsec()} > rhs;
+}
 
 }
